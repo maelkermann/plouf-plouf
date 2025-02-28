@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Shuffle, Save, Play, Trash2, Plus, X } from 'lucide-react';
+import {Shuffle, Save, Play, Trash2, Plus, X, Edit} from 'lucide-react';
 
 function App() {
   const [names, setNames] = useState<string[]>([]);
@@ -9,6 +9,8 @@ function App() {
   const [savedLists, setSavedLists] = useState<{ id: string; names: string[] }[]>([]);
   const [listName, setListName] = useState('');
   const [showSaveDialog, setShowSaveDialog] = useState(false);
+  const [editingList, setEditingList] = useState<{ id: string; names: string[] } | null>(null);
+  const [editingListName, setEditingListName] = useState('');
   const animationRef = useRef<number | null>(null);
   const selectionDuration = 4000; // 4 seconds
 
@@ -46,6 +48,7 @@ function App() {
     if (listName.trim() !== '' && names.length > 0) {
       const newList = {
         id: Date.now().toString(),
+        name: listName.trim(),
         names: [...names]
       };
       setSavedLists([...savedLists, newList]);
@@ -142,6 +145,25 @@ function App() {
       }
     };
   }, []);
+
+  const handleEditList = (listId: string) => {
+    const listToEdit = savedLists.find(list => list.id === listId);
+    if (listToEdit) {
+      setEditingList(listToEdit);
+      setEditingListName(listToEdit.names.join(', '));
+    }
+  };
+
+  const handleSaveEditedList = () => {
+    if (editingList) {
+      const updatedLists = savedLists.map(list =>
+        list.id === editingList.id ? { ...list, names: editingListName.split(',').map(name => name.trim()) } : list
+      );
+      setSavedLists(updatedLists);
+      setEditingList(null);
+      setEditingListName('');
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-100 to-purple-100 p-4">
@@ -270,13 +292,21 @@ function App() {
                   onClick={() => handleLoadList(list.id)}
                   className="flex justify-between items-center p-3 bg-gray-100 rounded-lg cursor-pointer hover:bg-gray-200"
                 >
-                  <span>Liste ({list.names.length} noms)</span>
-                  <button
-                    onClick={(e) => handleDeleteList(list.id, e)}
-                    className="text-gray-500 hover:text-red-500"
-                  >
-                    <Trash2 size={18} />
-                  </button>
+                  <span>{list.name} ({list.names.length} noms)</span>
+                  <div className="flex space-x-2">
+                    <button
+                        onClick={() => handleEditList(list.id)}
+                        className="text-gray-500 hover:text-blue-500"
+                    >
+                      <Edit size={18} />
+                    </button>
+                    <button
+                      onClick={(e) => handleDeleteList(list.id, e)}
+                      className="text-gray-500 hover:text-red-500"
+                    >
+                      <Trash2 size={18} />
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
@@ -304,6 +334,35 @@ function App() {
                 </button>
                 <button
                   onClick={handleSaveList}
+                  className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
+                >
+                  Sauvegarder
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {editingList && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
+            <div className="bg-white rounded-lg p-6 w-full max-w-md">
+              <h2 className="text-xl font-bold mb-4">Modifier la liste</h2>
+              <input
+                type="text"
+                value={editingListName}
+                onChange={(e) => setEditingListName(e.target.value)}
+                placeholder="Noms de la liste (séparés par des virgules)"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg mb-4 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              />
+              <div className="flex justify-end space-x-2">
+                <button
+                  onClick={() => setEditingList(null)}
+                  className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-100"
+                >
+                  Annuler
+                </button>
+                <button
+                  onClick={handleSaveEditedList}
                   className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
                 >
                   Sauvegarder
